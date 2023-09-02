@@ -4,6 +4,9 @@
 // To register a note for the command palette, add the following label: cmdPalette
 // The value of `cmdPalette` is used as the name/description of the command.
 // The palette can be opened by swiping down on mobile, or pressing cmd+shift+p / ctrl+shift+p on desktop.
+//
+// To activate this script, you'll need to add the two labels below to this script note:
+//   #run=frontendStartup #run=mobileStartup 
 
 // Note:  This is very experimental right now
 
@@ -17,7 +20,11 @@ async function getAvailableCommands() {
 function updateSelectedCommand(selectedIndex, palette) {
   const commandItems = Array.from(palette.getElementsByClassName('command-item'))
     .filter(item => item.style.display !== 'none');
+  
+  // Everything is hidden by the filter
+  if (commandItems.length === 0) return -1;
     
+  // Wrap around if needed
   selectedIndex = (selectedIndex + commandItems.length) % commandItems.length;
   
   commandItems.forEach((item, index) => {
@@ -26,10 +33,18 @@ function updateSelectedCommand(selectedIndex, palette) {
   return selectedIndex;
 }
 
-async function executeCommand(commandObj) {
-  const note = await api.getNote(commandObj.id);
-  note ? await note.executeScript() : console.log('Note not found.');
+async function executeCommand(palette, selectedIndex) {
+  const commandItems = Array.from(palette.getElementsByClassName('command-item'))
+    .filter(item => item.style.display !== 'none');
+
+  const selectedCommandId = commandItems[selectedIndex]?.dataset.noteId;
+  
+  if (selectedCommandId) {
+    const note = await api.getNote(selectedCommandId);
+    note ? await note.executeScript() : console.log('Note not found.');
+  }
 }
+
 
 function createPaletteElement() {
   const palette = document.createElement('div');
@@ -47,15 +62,17 @@ async function showPalette(commands, palette) {
   paletteKeydownHandler = async function(e) {
     if (e.key === 'ArrowDown') {
       selectedIndex++;
+      e.preventDefault();
     } else if (e.key === 'ArrowUp') {
       selectedIndex--;
+      e.preventDefault();
     } else if (['Enter', 'Escape'].includes(e.key)) {
-      if (e.key === 'Enter') await executeCommand(commands[selectedIndex]);
+      if (e.key === 'Enter') await executeCommand(palette, selectedIndex);
       palette.style.display = 'none';
       palette.removeEventListener('keydown', paletteKeydownHandler);
+      e.preventDefault();
       return;
     }
-    e.preventDefault();
     selectedIndex = updateSelectedCommand(selectedIndex, palette);
   }
     
@@ -65,7 +82,15 @@ async function showPalette(commands, palette) {
   searchBox.type = 'text';
   searchBox.placeholder = 'Search commands...';
   searchBox.className = 'search-box';
-  searchBox.oninput = () => updateSelectedCommand(selectedIndex, palette);
+  searchBox.oninput = () => {
+    const searchQuery = searchBox.value.toLowerCase();
+    const commandItems = Array.from(palette.getElementsByClassName('command-item'));
+    commandItems.forEach(item => {
+      const cmdName = item.textContent.toLowerCase();
+      item.style.display = cmdName.includes(searchQuery) ? 'block' : 'none';
+    });
+    updateSelectedCommand(0, palette);
+  };
   palette.appendChild(searchBox);
 
   const commandContainer = document.createElement('div');
@@ -74,8 +99,9 @@ async function showPalette(commands, palette) {
     const item = document.createElement('div');
     item.className = 'command-item';
     item.textContent = command.name;
+    item.dataset.noteId = command.id;
     item.onclick = async () => {
-      await executeCommand(command);
+      await executeCommand(palette, selectedIndex);
       palette.style.display = 'none';
       palette.removeEventListener('keydown', paletteKeydownHandler);
     };
