@@ -9,24 +9,26 @@
 //   #run=frontendStartup #run=mobileStartup 
 
 // Note:  This is very experimental right now
-
 let paletteKeydownHandler;
 
 async function getAvailableCommands() {
   const cmdNotes = await api.getNotesWithLabel('cmdPalette');
-  return cmdNotes.map(n => ({ id: n.noteId, name: n.getLabelValue('cmdPalette') }));
+  return cmdNotes.map(n => ({
+    id: n.noteId,
+    name: n.getLabelValue('cmdPalette')
+  }));
 }
 
 function updateSelectedCommand(selectedIndex, palette) {
   const commandItems = Array.from(palette.getElementsByClassName('command-item'))
     .filter(item => item.style.display !== 'none');
-  
+
   // Everything is hidden by the filter
   if (commandItems.length === 0) return -1;
-    
+
   // Wrap around if needed
   selectedIndex = (selectedIndex + commandItems.length) % commandItems.length;
-  
+
   commandItems.forEach((item, index) => {
     item.classList.toggle('selected', selectedIndex === index);
   });
@@ -38,7 +40,7 @@ async function executeCommand(palette, selectedIndex) {
     .filter(item => item.style.display !== 'none');
 
   const selectedCommandId = commandItems[selectedIndex]?.dataset.noteId;
-  
+
   if (selectedCommandId) {
     const note = await api.getNote(selectedCommandId);
     note ? await note.executeScript() : console.log('Note not found.');
@@ -75,7 +77,7 @@ async function showPalette(commands, palette) {
     }
     selectedIndex = updateSelectedCommand(selectedIndex, palette);
   }
-    
+
   palette.addEventListener('keydown', paletteKeydownHandler);
 
   const searchBox = document.createElement('input');
@@ -167,48 +169,50 @@ function init() {
       await showPalette(commands, palette);
     }
   });
-    
-    let startY, startX;
-    let disablePullToRefresh = false;
 
-    document.addEventListener('touchstart', function(e) {
-      startY = e.touches[0].clientY;
-      if (startY < 100) {  // 100 pixels from the top
-        // Only set startX if the swipe starts near the top
-        startX = e.touches[0].clientX;
-        disablePullToRefresh = true;
-      } else {
-        startX = null;  // Reset startX to prevent unwanted swipes
-        disablePullToRefresh = false;
-      }
-    }, false);
-    
-    document.addEventListener('touchmove', function(e) {
-      if (disablePullToRefresh) {   
-        e.preventDefault(); // may prevent pull-to-refresh
-      }
-    }, { passive: false });
+  let startY, startX;
+  let disablePullToRefresh = false;
 
-    document.addEventListener('touchend', async function(e) {
-      if (startX === null) return;  // Ignore if swipe didn't start near the top
+  document.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+    if (startY < 100) { // 100 pixels from the top
+      // Only set startX if the swipe starts near the top
+      startX = e.touches[0].clientX;
+      disablePullToRefresh = true;
+    } else {
+      startX = null; // Reset startX to prevent unwanted swipes
+      disablePullToRefresh = false;
+    }
+  }, false);
 
-      let endX = e.changedTouches[0].clientX;
-      let endY = e.changedTouches[0].clientY;
+  document.addEventListener('touchmove', function(e) {
+    if (disablePullToRefresh) {
+      e.preventDefault(); // may prevent pull-to-refresh
+    }
+  }, {
+    passive: false
+  });
 
-      const dx = startX - endX;
-      const dy = startY - endY;
+  document.addEventListener('touchend', async function(e) {
+    if (startX === null) return; // Ignore if swipe didn't start near the top
 
-      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 100) {
-        if (dy < 0) {
-          console.log('Swipe down detected');
-          if (window.navigator && window.navigator.vibrate) {
-            navigator.vibrate(100);  // vibrate for 100 ms
-          }
-          const commands = await api.runOnBackend(getAvailableCommands, []);
-          await showPalette(commands, palette);
+    let endX = e.changedTouches[0].clientX;
+    let endY = e.changedTouches[0].clientY;
+
+    const dx = startX - endX;
+    const dy = startY - endY;
+
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 100) {
+      if (dy < 0) {
+        console.log('Swipe down detected');
+        if (window.navigator && window.navigator.vibrate) {
+          navigator.vibrate(100); // vibrate for 100 ms
         }
+        const commands = await api.runOnBackend(getAvailableCommands, []);
+        await showPalette(commands, palette);
       }
-    }, false);
+    }
+  }, false);
 
 }
 

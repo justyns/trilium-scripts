@@ -1,10 +1,10 @@
 // https://github.com/justyns/trilium-scripts
 // This script is meant to be added as a frontend js note.  It adds a simple command palette
-// that can execute other script notes.
+// that can execute other script notes.  This version can also search through
+// regular notes in addition to executing commands.
 // 
 // It is similar to the command palette in palette-testing.js, but uses the built-in widget code
-// and type of modal used by the jump-to-note feature.  This version can also search through
-// regular notes in addition to executing commands.
+// and type of modal used by the jump-to-note feature.
 // 
 // To register a note for the command palette, add the following label: cmdPalette
 // The value of `cmdPalette` is used as the name/description of the command.
@@ -14,7 +14,6 @@
 //   #widget #run=mobileStartup 
 
 // Note:  This is very experimental right now
-
 const CMD_PALETTE_TPL = `
 <div id="command-palette-dialog" class="modal mt-auto" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg" role="document">
@@ -59,10 +58,11 @@ function addStyles() {
 async function getAvailableCommands(query) {
   query = query.toLowerCase();
   const cmdNotes = await api.getNotesWithLabel('cmdPalette');
-  const cmdObjs = cmdNotes.map(n => ({ id: n.noteId,
-                                       name: n.getLabelValue('cmdPalette'),
-                                       isCmd: true,
-                                    }));
+  const cmdObjs = cmdNotes.map(n => ({
+    id: n.noteId,
+    name: n.getLabelValue('cmdPalette'),
+    isCmd: true,
+  }));
   return cmdObjs.filter(cmd => cmd.name.toLowerCase().includes(query));
 }
 
@@ -73,10 +73,11 @@ async function searchNotes(query) {
 
 async function getAvailableNotes(query) {
   const notes = await api.runOnBackend(searchNotes, [query])
-  const noteObjs = notes.map(n => ({ id: n.noteId,
-                                     name: n.title,
-                                     isCmd: false,
-                                    }));
+  const noteObjs = notes.map(n => ({
+    id: n.noteId,
+    name: n.title,
+    isCmd: false,
+  }));
   return noteObjs;
 }
 
@@ -116,7 +117,7 @@ class CommandAndNotePalette {
     this.selectedIndex = 0;
     this.modalActive = false;
 
-    
+
     // Need to handle both any input for searching, and specific keydown events for navigation
     this.$searchBox.on('input', () => this.handleSearchInput());
     this.$widget.on('keydown', (e) => this.handleKeydown(e));
@@ -129,7 +130,7 @@ class CommandAndNotePalette {
       this.modalActive = false;
     });
   }
-  
+
   /**
    * Filters the list of available commands or notes based on the search box input
    */
@@ -146,8 +147,8 @@ class CommandAndNotePalette {
       this.showNotes(query);
     }
   }
-  
-async handleKeydown(e) {
+
+  async handleKeydown(e) {
     if (!this.modalActive) return;
 
     const commandItems = Array.from(this.$commandContainer[0].getElementsByClassName('command-item'))
@@ -178,7 +179,7 @@ async handleKeydown(e) {
       const containerBottom = containerTop + container.clientHeight;
       const itemTop = selectedItem.offsetTop;
       const itemBottom = itemTop + selectedItem.clientHeight;
-        
+
       // console.log(`itemTop: ${itemTop}, containerTop: ${containerTop}, scrollTop: ${container.scrollTop}, container offset height: ${container.offsetHeight}, item offset height: ${selectedItem.offsetHeight}, container client height: ${container.clientHeight}, item client height: ${selectedItem.clientHeight}`);
 
       // Scroll up or down depending on whether the selected item is visible
@@ -236,8 +237,8 @@ function init() {
   $('body').append(CMD_PALETTE_TPL);
   const palette = new CommandAndNotePalette();
   addStyles();
-  
-  $('#command-palette-dialog').on('shown.bs.modal', function () {
+
+  $('#command-palette-dialog').on('shown.bs.modal', function() {
     setTimeout(() => {
       // This should auto focus the search box and put the cursor after the >
       palette.$searchBox.focus();
@@ -258,24 +259,26 @@ function init() {
   // Support for swiping down on mobile to open the palette modal
   document.addEventListener('touchstart', function(e) {
     startY = e.touches[0].clientY;
-    if (startY < 100) {  // 100 pixels from the top
+    if (startY < 100) { // 100 pixels from the top
       // Only set startX if the swipe starts near the top
       startX = e.touches[0].clientX;
       disablePullToRefresh = true;
     } else {
-      startX = null;  // Reset startX to prevent unwanted swipes
+      startX = null; // Reset startX to prevent unwanted swipes
       disablePullToRefresh = false;
     }
   }, false);
-  
+
   document.addEventListener('touchmove', function(e) {
-    if (disablePullToRefresh) {   
+    if (disablePullToRefresh) {
       e.preventDefault(); // prevents pull-to-refresh on chrome
     }
-  }, { passive: false });
+  }, {
+    passive: false
+  });
 
   document.addEventListener('touchend', async function(e) {
-    if (startX === null) return;  // Ignore if swipe didn't start near the top
+    if (startX === null) return; // Ignore if swipe didn't start near the top
 
     let endX = e.changedTouches[0].clientX;
     let endY = e.changedTouches[0].clientY;
@@ -288,7 +291,7 @@ function init() {
       if (dy < 0) {
         // console.log('Swipe down detected');
         if (window.navigator && window.navigator.vibrate) {
-          navigator.vibrate(100);  // vibrate for 100 ms
+          navigator.vibrate(100); // vibrate for 100 ms
         }
         palette.showDialog();
       }
@@ -296,7 +299,9 @@ function init() {
   }, false);
 
   // I ran into issues with the keyboard shortcuts not working in the modal unless it was initialized early
-  $('#command-palette-dialog').modal({ show: false });
+  $('#command-palette-dialog').modal({
+    show: false
+  });
 }
 
 $(document).ready(function() {
