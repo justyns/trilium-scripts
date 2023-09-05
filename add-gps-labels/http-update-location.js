@@ -2,8 +2,16 @@
 // This script should be added as a js backend script with
 // the label #customRequestHandler=update-location 
 
-const { req, res } = api;
-const { secret, noteId, latitude, longitude } = req.body;
+const {
+  req,
+  res
+} = api;
+const {
+  secret,
+  noteId,
+  latitude,
+  longitude
+} = req.body;
 
 if (req.method === 'POST' && secret === 'secretgoeshere') {
   try {
@@ -16,9 +24,18 @@ if (req.method === 'POST' && secret === 'secretgoeshere') {
     }
 
     // Create new label attributes for the note
-    const labels = [
-      { type: "label", name: "latitude", value: latitude.toString(), isInheritable: false },
-      { type: "label", name: "longitude", value: longitude.toString(), isInheritable: false }
+    const labels = [{
+        type: "label",
+        name: "latitude",
+        value: latitude.toString(),
+        isInheritable: false
+      },
+      {
+        type: "label",
+        name: "longitude",
+        value: longitude.toString(),
+        isInheritable: false
+      }
     ];
 
     for (const label of labels) {
