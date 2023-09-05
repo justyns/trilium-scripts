@@ -10,14 +10,14 @@
 // The value of `cmdPalette` is used as the name/description of the command.
 // The palette can be opened by swiping down on mobile, or pressing cmd+shift+p / ctrl+shift+p on desktop.
 //
-// To activate this script, you'll need to add the following label attribute to the script note:
-//   #widget
+// To activate this script, you'll need to add the following label attributes to the script note:
+//   #widget #run=mobileStartup 
 
 // Note:  This is very experimental right now
 
 const CMD_PALETTE_TPL = `
-<div id="command-palette-dialog" class="modal mx-auto" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+<div id="command-palette-dialog" class="modal mt-auto" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Command Palette</h5>
@@ -194,7 +194,7 @@ async handleKeydown(e) {
 
   async showCommands(query) {
     const commands = await api.runOnBackend(getAvailableCommands, [query.trim()]);
-    this.renderItems(commands);
+    await this.renderItems(commands);
   }
 
   async showNotes(query) {
@@ -202,15 +202,22 @@ async handleKeydown(e) {
     await this.renderItems(notes);
   }
 
+  async handleItemInteraction($itemDiv, index) {
+    this.selectedIndex = index;
+    await executeCommand($itemDiv);
+    this.$widget.modal('hide');
+  }
+
   async renderItems(items) {
     this.$commandContainer.empty();
     items.forEach((item, index) => {
       const $itemDiv = $(`<div class="command-item" data-note-id="${item.id}" data-is-cmd="${item.isCmd}">${item.name}</div>`);
-      $itemDiv.on('click', async () => {
-        await executeCommand(item);
-        this.$widget.modal('hide');
-      });
-        
+      $itemDiv.on('click', () => this.handleItemInteraction($itemDiv, index));
+      // $itemDiv.on('touchend', function(e) {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   handleItemInteraction.call(this, $itemDiv, index);
+      // }.bind(this));
       if (index === this.selectedIndex) {
         $itemDiv.addClass('selected');
       }
