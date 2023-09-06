@@ -49,6 +49,14 @@ function addStyles() {
   background-color: var(--active-item-background-color);
   color: var(--active-item-text-color);
 }
+.command-item.selected .meta {
+  font-size: 11px;
+  color: var(--active-item-text-color);
+}
+.command-item .meta {
+  font-size: 11px;
+  // color: var(--active-item-text-color);
+}
 `;
   document.head.appendChild(style);
 }
@@ -60,6 +68,7 @@ async function getAvailableCommands(query) {
   const cmdObjs = cmdNotes.map(n => ({
     id: n.noteId,
     name: n.getLabelValue('cmdPalette'),
+    description: n.getLabelValue('cmdPaletteDesc'),
     isCmd: true,
   }));
   return cmdObjs.filter(cmd => cmd.name.toLowerCase().includes(query));
@@ -79,6 +88,8 @@ async function searchNotes(query) {
     // TODO: This path looks like root/oNMdLSYltGKH/d7khRTr4hOG2/6uKcCZ7G3ucB/NAICpE8qdo7v/Uf36joVIOPnC/CO4q2TGsJDHK instead of the friendly version
     path: n.getBestNotePathString(),
     isCmd: false,
+    creationTime: n.utcDateCreated,
+    modificationTime: n.utcDateModified,
   }));
   return noteObjs
 }
@@ -218,7 +229,15 @@ class CommandAndNotePalette {
   async renderItems(items) {
     this.$commandContainer.empty();
     items.forEach((item, index) => {
-      const $itemDiv = $(`<div class="command-item" data-note-id="${item.id}" data-is-cmd="${item.isCmd}">${item.name}</div>`);
+      let displayText = `${item.name}`;
+      if (item.description) {
+        displayText += ` <span class="meta"> - ${item.description}</span>`;
+      }
+      if (item.creationTime || item.modificationTime) {
+        displayText += ` <span class="meta">| Created: ${item.creationTime} | Modified: ${item.modificationTime}</span>`;
+      }
+      // TODO: Make this look prettier
+      const $itemDiv = $(`<div class="command-item" data-note-id="${item.id}" data-is-cmd="${item.isCmd}">${displayText}</div>`);
       $itemDiv.on('click', () => this.handleItemInteraction($itemDiv, index));
       // $itemDiv.on('touchend', function(e) {
       //   e.preventDefault();
