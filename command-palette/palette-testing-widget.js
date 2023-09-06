@@ -45,7 +45,6 @@ function addStyles() {
   cursor: pointer;
   border-bottom: 1px solid #3C3C3C;
 }
-
 .command-item.selected {
   background-color: var(--active-item-background-color);
   color: var(--active-item-text-color);
@@ -68,22 +67,31 @@ async function getAvailableCommands(query) {
 
 // meant to run in the backend to query notes
 async function searchNotes(query) {
-  return await api.searchForNotes(query)
-}
-
-async function getAvailableNotes(query) {
-  const notes = await api.runOnBackend(searchNotes, [query])
+  let notes = await api.searchForNotes(query)
+  notes.sort((a, b) => {
+    const aDate = a.utcDateModified || a.utcDateCreated;
+    const bDate = b.utcDateModified || b.utcDateCreated;
+    return new Date(bDate) - new Date(aDate);
+  });
   const noteObjs = notes.map(n => ({
     id: n.noteId,
     name: n.title,
+    // TODO: This path looks like root/oNMdLSYltGKH/d7khRTr4hOG2/6uKcCZ7G3ucB/NAICpE8qdo7v/Uf36joVIOPnC/CO4q2TGsJDHK instead of the friendly version
+    path: n.getBestNotePathString(),
     isCmd: false,
   }));
+  return noteObjs
+}
+
+async function getAvailableNotes(query) {
+  const noteObjs = await api.runOnBackend(searchNotes, [query]);
+  // console.log('Available notes:');
+  // console.log(noteObjs);
   return noteObjs;
 }
 
-/**
- * Executes a command based on the selected item.
- */
+
+// Executes a command based on the selected item, or go to selected note
 async function executeCommand(selectedItem) {
   const noteId = $(selectedItem).data('note-id');
   const isCmd = $(selectedItem).data('is-cmd');
@@ -131,9 +139,7 @@ class CommandAndNotePalette {
     });
   }
 
-  /**
-   * Filters the list of available commands or notes based on the search box input
-   */
+  // Filters the list of available commands or notes based on the search box input
   async handleSearchInput() {
     const query = this.$searchBox.val().trim();
     this.selectedIndex = 0; // reset selected index
