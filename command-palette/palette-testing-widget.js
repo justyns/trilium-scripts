@@ -7,13 +7,15 @@
 // and type of modal used by the jump-to-note feature.
 // 
 // To register a note for the command palette, add the following label: cmdPalette
-// The value of `cmdPalette` is used as the name/description of the command.
+// The value of `cmdPalette` is used as the name of the command.  If there is no value, the title of the note is used instead.
+// You can also set a `cmdPaletteDesc` label to add a more friendly description that will also be displayed.
 // The palette can be opened by swiping down on mobile, or pressing cmd+shift+p / ctrl+shift+p on desktop.
 //
 // To activate this script, you'll need to add the following label attributes to the script note:
 //   #widget #run=mobileStartup 
 
-// Note:  This is very experimental right now
+// Note:  This is very experimental right now, but please let me know if you run into any issues or have feedback.
+
 const CMD_PALETTE_TPL = `
 <div id="command-palette-dialog" class="modal mt-auto" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg" role="document">
@@ -67,7 +69,7 @@ async function getAvailableCommands(query) {
   const cmdNotes = await api.getNotesWithLabel('cmdPalette');
   const cmdObjs = cmdNotes.map(n => ({
     id: n.noteId,
-    name: n.getLabelValue('cmdPalette'),
+    name: n.getLabelValue('cmdPalette') || n.title,
     description: n.getLabelValue('cmdPaletteDesc'),
     isCmd: true,
   }));
